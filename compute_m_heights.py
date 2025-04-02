@@ -2,7 +2,7 @@ import sys
 import pickle
 import gzip
 import os
-import torch
+import numpy as np
 from itertools import combinations, product
 from ortools.linear_solver import pywraplp
 import time
@@ -88,7 +88,7 @@ def process_batch(batch_data):
     """
     results = []
     for row in batch_data:
-        G = torch.tensor(row["generator_matrix"], dtype=torch.float32)
+        G = np.array(row["generator_matrix"], dtype=np.float32)
         max_m_value = row["max_m_value"]
 
         k = G.shape[0]
@@ -99,7 +99,7 @@ def process_batch(batch_data):
         results.append({
             "n": G.shape[1],
             "k": G.shape[0],
-            "P_matrix": P.numpy().tolist(),
+            "P_matrix": P.tolist(),
             "m_heights": m_heights
         })
     return results
