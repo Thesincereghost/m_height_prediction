@@ -64,7 +64,7 @@ def compute_m_heights(G, lp_solve_function, max_m_value, debug=False):
     n = G.shape[1]
     m_heights = []
 
-    for m in range(2, max_m_value + 1):
+    for m in range(1, max_m_value + 1):
         max_hm = float('-inf')
         for a, b in product(range(n), repeat=2):
             if a != b:
@@ -73,6 +73,12 @@ def compute_m_heights(G, lp_solve_function, max_m_value, debug=False):
                         result = lp_solve_function(G, a, b, list(X), list(psi), debug=debug)
                         max_hm = max(max_hm, result)
         m_heights.append(max_hm)
+        if max_hm == float('inf'):
+            break
+
+    # Fill remaining m-heights with infinity
+    for m in range(len(m_heights), min(max_m_value + 1, n)):
+        m_heights.append(float('inf'))
 
     return m_heights
 
@@ -111,7 +117,12 @@ def process_dataset(input_file, batch_size, num_workers):
             print("The dataset is empty.")
             return
 
-        os.makedirs("samples", exist_ok=True)
+        # os.makedirs("samples", exist_ok=True)
+
+        # Create a subfolder under "samples" for the input file
+        base_name = os.path.splitext(os.path.basename(input_file))[0]
+        output_folder = os.path.join("samples", base_name)
+        os.makedirs(output_folder, exist_ok=True)
 
         total_samples = len(dataset)
         running_total = 0
@@ -125,7 +136,8 @@ def process_dataset(input_file, batch_size, num_workers):
                 results = executor.submit(process_batch, batch_data).result()
 
                 # Save the batch results to a file
-                output_file = f"samples/{dataset[0]['n']}_{dataset[0]['k']}_batch_{batch_number}.pkl.gz"
+                # output_file = f"samples/{dataset[0]['n']}_{dataset[0]['k']}_batch_{batch_number}.pkl.gz"
+                output_file = os.path.join(output_folder, f"batch_{batch_number}.pkl.gz")
                 with gzip.open(output_file, 'wb') as f:
                     pickle.dump(results, f)
 
