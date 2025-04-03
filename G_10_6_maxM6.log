@@ -1,0 +1,4 @@
+
+CondaError: Run 'conda init' before 'conda activate'
+
+slurmstepd: error: *** JOB 2141657 ON fc032 CANCELLED AT 2025-04-02T20:42:05 ***
