@@ -102,6 +102,7 @@ def process_batch(batch_data):
             "P_matrix": P.tolist(),
             "m_heights": m_heights
         })
+        print("Processed a sample")
     return results
 
 def process_dataset(input_file, batch_size, num_workers):
