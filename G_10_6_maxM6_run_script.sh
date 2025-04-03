@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=test_dataset   # Job name
+#SBATCH --job-name=G_10_6_maxM6   # Job name
 #SBATCH --mail-type=END,FAIL         # Mail Events (NONE,BEGIN,FAIL,END,ALL)
 #SBATCH --mail-user=vaishnav.g@tamu.edu   # Replace with your email address
 #SBATCH --ntasks=48                   # Run on a single CPU
@@ -7,10 +7,7 @@
 #SBATCH --mem=36G                 # Request 2560MB (2.5GB) per node
 #SBATCH --time=48:00:00              # Time limit hh:mm:ss
 #SBATCH --output=%x.log              # Standard output and error log
-#module purge
 module load Anaconda3/2024.02-1
-#conda init
-#bash
 conda activate deeplearning_636
 
-python compute_m_heights.py generator_matrices/test_dataset/test_dataset_n9_k4_m5.pkl.gz 2 2
+python compute_m_heights.py generator_matrices/G_10_6_maxM6.pkl.gz 920 46
