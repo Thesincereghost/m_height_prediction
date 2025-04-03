@@ -2,9 +2,9 @@
 #SBATCH --job-name=test_dataset   # Job name
 #SBATCH --mail-type=END,FAIL         # Mail Events (NONE,BEGIN,FAIL,END,ALL)
 #SBATCH --mail-user=vaishnav.g@tamu.edu   # Replace with your email address
-#SBATCH --ntasks=36                   # Run on a single CPU
-#SBATCH --ntasks-per-node=36 	## Request exactly (or max) of 36 tasks per node
-#SBATCH --mem=36G                 # Request 2560MB (2.5GB) per node
+#SBATCH --ntasks=4                   # Run on a single CPU
+#SBATCH --ntasks-per-node=4 	## Request exactly (or max) of 36 tasks per node
+#SBATCH --mem=4G                 # Request 2560MB (2.5GB) per node
 #SBATCH --time=1:00:00              # Time limit hh:mm:ss
 #SBATCH --output=test.log              # Standard output and error log
 #module purge
