@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=G_10_5_maxM5   # Job name
+#SBATCH --job-name=G_10_5_maxM5_1   # Job name
 #SBATCH --mail-type=END,FAIL         # Mail Events (NONE,BEGIN,FAIL,END,ALL)
 #SBATCH --mail-user=vaishnav.g@tamu.edu   # Replace with your email address
 #SBATCH --ntasks=36                   # Run on a single CPU
