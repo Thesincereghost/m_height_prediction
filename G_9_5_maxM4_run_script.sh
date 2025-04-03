@@ -10,4 +10,4 @@
 module load Anaconda3/2024.02-1
 # conda activate deeplearning_636
 
-python compute_m_heights.py generator_matrices/G_9_5_maxM4.pkl.gz 980 35
+python compute_m_heights.py generator_matrices_1/G_9_5_maxM4.pkl.gz 980 35 samples_1
