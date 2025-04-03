@@ -109,12 +109,12 @@ def process_batch(batch_data):
         results = list(executor.map(process_sample, batch_data))
     return results
 
-def process_dataset(input_file, batch_size, num_workers):
+def process_dataset(input_file, batch_size, num_workers, output_folder):
     """
     Processes a generator matrix dataset in batches using multiprocessing,
     computes m-heights for each sample in parallel within a batch, and saves the results.
     """
-    print(f"Starting dataset processing: {input_file}, batch size: {batch_size}, workers: {num_workers}")
+    print(f"Starting dataset processing: {input_file}, batch size: {batch_size}, workers: {num_workers}, output folder: {output_folder}")
     try:
         with gzip.open(input_file, 'rb') as f:
             dataset = pickle.load(f)
@@ -123,10 +123,10 @@ def process_dataset(input_file, batch_size, num_workers):
             print("The dataset is empty.")
             return
 
-        # Create a subfolder under "samples" for the input file
-        base_name = os.path.splitext(os.path.basename(input_file))[0]
-        output_folder = os.path.join("samples", base_name)
-        os.makedirs(output_folder, exist_ok=True)
+        # Create a subfolder for this input file under the output folder
+        input_file_name = os.path.splitext(os.path.basename(input_file))[0]
+        subfolder = os.path.join(output_folder, input_file_name)
+        os.makedirs(subfolder, exist_ok=True)
 
         total_samples = len(dataset)
         running_total = 0
@@ -140,15 +140,15 @@ def process_dataset(input_file, batch_size, num_workers):
             # Process the batch in parallel
             results = process_batch(batch_data)
 
-            # Save the batch results to a file
-            output_file = os.path.join(output_folder, f"batch_{batch_number}.pkl.gz")
+            # Save the batch results to a file in the subfolder
+            output_file = os.path.join(subfolder, f"batch_{batch_number}.pkl.gz")
             with gzip.open(output_file, 'wb') as f:
                 pickle.dump(results, f)
 
             running_total += len(batch_data)
             print(f"Processed batch {batch_number}, running total: {running_total}/{total_samples}")
 
-        print("All batches have been processed and saved.")
+        print(f"All batches for {input_file} have been processed and saved in {subfolder}.")
 
     except FileNotFoundError:
         print(f"Error: File not found: {input_file}")
@@ -156,12 +156,13 @@ def process_dataset(input_file, batch_size, num_workers):
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("Usage: python compute_m_heights.py <input_dataset_file> <batch_size> <num_workers>")
+    if len(sys.argv) != 5:
+        print("Usage: python compute_m_heights.py <input_dataset_file> <batch_size> <num_workers> <output_folder>")
         sys.exit(1)
 
     input_file = sys.argv[1]
     batch_size = int(sys.argv[2])
     num_workers = int(sys.argv[3])
+    output_folder = sys.argv[4]
 
-    process_dataset(input_file, batch_size, num_workers)
+    process_dataset(input_file, batch_size, num_workers, output_folder)

@@ -13,6 +13,7 @@
 #bash
 # conda activate deeplearning_636
 
-# python compute_m_heights.py generator_matrices/test_dataset/test_dataset_n9_k4_m5.pkl.gz 2 2
-# python3 compute_m_heights.py generator_matrices/G_9_4_maxM5.pkl.gz 980 5
-python compute_m_heights.py generator_matrices/G_9_4_maxM5.pkl.gz 980 3
+# python compute_m_heights.py generator_matrices_1/test_dataset/test_dataset_n9_k4_m5.pkl.gz 2 2 samples_1
+python3 compute_m_heights.py generator_matrices/test_dataset/test_dataset_n9_k4_m5.pkl.gz 2 2 samples_1
+# python3 compute_m_heights.py generator_matrices_1/G_9_4_maxM5.pkl.gz 980 5 samples_1
+# python compute_m_heights.py generator_matrices_1/G_9_4_maxM5.pkl.gz 980 3 samples_1
