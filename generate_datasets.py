@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 import math
 import pickle
 import gzip
@@ -15,9 +15,9 @@ def generate_random_P(n, k, existing_Ps, num_samples):
     generated_count = 0
 
     while generated_count < target_count:
-        P = torch.empty((k, n - k), dtype=torch.float32).uniform_(-100, 100)  # Real-valued matrix
+        P = np.random.uniform(-100, 100, (k, n - k))  # Real-valued matrix
         # Check for duplicates considering column permutations
-        P_columns = frozenset(tuple(col.tolist()) for col in P.T)
+        P_columns = frozenset(tuple(col) for col in P.T)
         if P_columns not in existing_Ps:
             existing_Ps.add(P_columns)
             generated_count += 1
@@ -30,8 +30,8 @@ def construct_generator_matrix(n, k, P):
     if P.shape != (k, n - k):
         raise ValueError(f"P must have shape ({k}, {n-k}), but got {P.shape}")
     
-    I_k = torch.eye(k, dtype=P.dtype)
-    G = torch.cat((I_k, P), dim=1)
+    I_k = np.eye(k, dtype=P.dtype)
+    G = np.concatenate((I_k, P), axis=1)
     return G
 
 def generate_dataset(n, k, num_samples, max_m_value):
@@ -46,7 +46,7 @@ def generate_dataset(n, k, num_samples, max_m_value):
     for P in generate_random_P(n, k, existing_Ps, num_samples):
         G = construct_generator_matrix(n, k, P)
         dataset.append({
-            "generator_matrix": G.numpy().tolist(),
+            "generator_matrix": G.tolist(),
             "max_m_value": max_m_value
         })
     
