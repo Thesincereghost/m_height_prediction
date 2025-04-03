@@ -8,10 +8,11 @@
 #SBATCH --time=1:00:00              # Time limit hh:mm:ss
 #SBATCH --output=test.log              # Standard output and error log
 #module purge
-module load Anaconda3/2024.02-1
+# module load Anaconda3/2024.02-1
 #conda init
 #bash
 # conda activate deeplearning_636
 
 # python compute_m_heights.py generator_matrices/test_dataset/test_dataset_n9_k4_m5.pkl.gz 2 2
-python compute_m_heights.py generator_matrices/G_9_4_maxM5.pkl.gz 980 35
+# python3 compute_m_heights.py generator_matrices/G_9_4_maxM5.pkl.gz 980 5
+python compute_m_heights.py generator_matrices/G_9_4_maxM5.pkl.gz 980 3

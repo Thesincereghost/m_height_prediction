@@ -82,34 +82,37 @@ def compute_m_heights(G, lp_solve_function, max_m_value, debug=False):
 
     return m_heights
 
+def process_sample(sample):
+    """
+    Processes a single generator matrix sample, computes m-heights, and returns the result.
+    """
+    G = np.array(sample["generator_matrix"], dtype=np.float32)
+    max_m_value = sample["max_m_value"]
+
+    k = G.shape[0]
+    P = G[:, k:]  # Remove the kxk identity matrix from the front of G
+    print("Started processing sample...")
+    m_heights = compute_m_heights(G, solve_m_height_lp_google, max_m_value)
+    print("Finished processing sample.")
+    return {
+        "n": G.shape[1],
+        "k": G.shape[0],
+        "P_matrix": P.tolist(),
+        "m_heights": m_heights
+    }
+
 def process_batch(batch_data):
     """
-    Processes a batch of generator matrices, computes m-heights, and returns the results.
+    Processes a batch of generator matrix samples in parallel and returns the results.
     """
-    results = []
-    for row in batch_data:
-        print("started processing a sample")
-        G = np.array(row["generator_matrix"], dtype=np.float32)
-        max_m_value = row["max_m_value"]
-
-        k = G.shape[0]
-        P = G[:, k:]  # Remove the kxk identity matrix from the front of G
-
-        m_heights = compute_m_heights(G, solve_m_height_lp_google, max_m_value)
-
-        results.append({
-            "n": G.shape[1],
-            "k": G.shape[0],
-            "P_matrix": P.tolist(),
-            "m_heights": m_heights
-        })
-        print("Processed a sample")
+    with ProcessPoolExecutor() as executor:
+        results = list(executor.map(process_sample, batch_data))
     return results
 
 def process_dataset(input_file, batch_size, num_workers):
     """
     Processes a generator matrix dataset in batches using multiprocessing,
-    computes m-heights for each row, and saves the results to separate files.
+    computes m-heights for each sample in parallel within a batch, and saves the results.
     """
     print(f"Starting dataset processing: {input_file}, batch size: {batch_size}, workers: {num_workers}")
     try:
@@ -119,8 +122,6 @@ def process_dataset(input_file, batch_size, num_workers):
         if not dataset:
             print("The dataset is empty.")
             return
-
-        # os.makedirs("samples", exist_ok=True)
 
         # Create a subfolder under "samples" for the input file
         base_name = os.path.splitext(os.path.basename(input_file))[0]
@@ -133,20 +134,19 @@ def process_dataset(input_file, batch_size, num_workers):
         # Split the dataset into batches
         batches = [dataset[i:i + batch_size] for i in range(0, total_samples, batch_size)]
 
-        with ProcessPoolExecutor(max_workers=num_workers) as executor:
-            for batch_number, batch_data in enumerate(batches, start=1):
-                print(f"Processing batch {batch_number} with {len(batch_data)} samples...")
-                # Process the batch
-                results = executor.submit(process_batch, batch_data).result()
+        for batch_number, batch_data in enumerate(batches, start=1):
+            print(f"Processing batch {batch_number} with {len(batch_data)} samples...")
 
-                # Save the batch results to a file
-                # output_file = f"samples/{dataset[0]['n']}_{dataset[0]['k']}_batch_{batch_number}.pkl.gz"
-                output_file = os.path.join(output_folder, f"batch_{batch_number}.pkl.gz")
-                with gzip.open(output_file, 'wb') as f:
-                    pickle.dump(results, f)
+            # Process the batch in parallel
+            results = process_batch(batch_data)
 
-                running_total += len(batch_data)
-                print(f"Processed batch {batch_number}, running total: {running_total}/{total_samples}")
+            # Save the batch results to a file
+            output_file = os.path.join(output_folder, f"batch_{batch_number}.pkl.gz")
+            with gzip.open(output_file, 'wb') as f:
+                pickle.dump(results, f)
+
+            running_total += len(batch_data)
+            print(f"Processed batch {batch_number}, running total: {running_total}/{total_samples}")
 
         print("All batches have been processed and saved.")
 
