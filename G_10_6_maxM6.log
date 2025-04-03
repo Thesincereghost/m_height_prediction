@@ -1,4 +1,2 @@
-
-CondaError: Run 'conda init' before 'conda activate'
-
-slurmstepd: error: *** JOB 2141670 ON fc032 CANCELLED AT 2025-04-02T21:49:08 ***
+Starting dataset processing: generator_matrices/G_10_6_maxM6.pkl.gz, batch size: 980, workers: 35
+Processing batch 1 with 980 samples...
