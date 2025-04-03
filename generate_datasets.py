@@ -11,7 +11,8 @@ def generate_random_P(n, k, existing_Ps, num_samples):
     The number of unique matrices to generate is num_samples / (n-k)!.
     Matrices with the same columns but in a different order are considered duplicates.
     """
-    target_count = num_samples // math.factorial(n - k)
+    #target_count = num_samples // math.factorial(n - k)
+    target_count = num_samples
     generated_count = 0
 
     while generated_count < target_count:
