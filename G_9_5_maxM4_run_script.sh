@@ -8,6 +8,6 @@
 #SBATCH --time=32:00:00              # Time limit hh:mm:ss
 #SBATCH --output=%x.log              # Standard output and error log
 module load Anaconda3/2024.02-1
-conda activate deeplearning_636
+# conda activate deeplearning_636
 
-python compute_m_heights.py generator_matrices/G_9_5_maxM4.pkl.gz 920 46
+python compute_m_heights.py generator_matrices/G_9_5_maxM4.pkl.gz 980 35
