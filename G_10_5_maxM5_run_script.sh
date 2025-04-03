@@ -5,7 +5,7 @@
 #SBATCH --ntasks=48                   # Run on a single CPU
 #SBATCH --ntasks-per-node=48 	Request exactly (or max) of 48 tasks per node
 #SBATCH --mem=36G                 # Request 2560MB (2.5GB) per node
-#SBATCH --time=48:00:00              # Time limit hh:mm:ss
+#SBATCH --time=24:00:00              # Time limit hh:mm:ss
 #SBATCH --output=%x.log              # Standard output and error log
 module load Anaconda3/2024.02-1
 conda activate deeplearning_636
