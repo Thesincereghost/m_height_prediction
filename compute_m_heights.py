@@ -109,6 +109,7 @@ def process_dataset(input_file, batch_size, num_workers):
     Processes a generator matrix dataset in batches using multiprocessing,
     computes m-heights for each row, and saves the results to separate files.
     """
+    print(f"Starting dataset processing: {input_file}, batch size: {batch_size}, workers: {num_workers}")
     try:
         with gzip.open(input_file, 'rb') as f:
             dataset = pickle.load(f)
@@ -132,6 +133,7 @@ def process_dataset(input_file, batch_size, num_workers):
 
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
             for batch_number, batch_data in enumerate(batches, start=1):
+                print(f"Processing batch {batch_number} with {len(batch_data)} samples...")
                 # Process the batch
                 results = executor.submit(process_batch, batch_data).result()
 
