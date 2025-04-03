@@ -88,6 +88,7 @@ def process_batch(batch_data):
     """
     results = []
     for row in batch_data:
+        print("started processing a sample")
         G = np.array(row["generator_matrix"], dtype=np.float32)
         max_m_value = row["max_m_value"]
 
