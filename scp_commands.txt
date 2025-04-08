@@ -3,4 +3,5 @@ scp -r /mnt/d/deep_learning/m_height_prediction/generator_matrices_2 vaishnav.g@
 
 # SCP to download the samples folder from the remote server to your local machine
 scp -r vaishnav.g@tamu.edu:/scratch/user/vaishnav.g/csce636/m_height_prediction/samples_2 /mnt/d/deep_learning/m_height_prediction/samples_2
-git diff COMMIT_1 COMMIT_2 --name-only
+
+git diff bd2eb040f848414679e4f846f42cd6979eded698  cd8fb29ed57713cc9426d9dc71d7adaba3ec43c0 --name-only
