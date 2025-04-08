@@ -1,0 +1,319 @@
+class CustomModel:
+    def __init__(self, n, k, max_m_value):
+        self.n = n
+        self.k = k
+        self.max_m_value = max_m_value
+
+        self.P_matrices = None
+        self.m_heights = None
+        self.P_matrices_train = None 
+        self.P_matrices_test = None 
+        self.P_matrices_val = None
+        self.m_heights_train = None 
+        self.m_heights_test = None
+        self.m_heights_log_train = None
+        self.m_heights_log_test = None   
+        self.m_heights_log_val = None
+        self.eval_inputs = None
+        self.eval_outputs = None
+        self.P_matrices_train_aug = None
+        self.m_heights_log_train_aug = None
+
+        self.train_dataset = None
+        self.val_dataset = None
+
+        self.model_name = f'model_{self.n}_{self.k}.keras'
+        self.model = None
+        self.history = None
+    def load_and_preprocess_data(self,filepath):
+        with gzip.open(filepath, 'rb') as f:
+            dataset = pickle.load(f)
+
+        self.P_matrices = []
+        self.m_heights = []
+
+        for row in dataset:
+            # Remove the last `inf`, this is an error due to bug in the dataset generation
+            heights = row['m_heights'][:self.max_m_value]  
+            if len(heights) != self.max_m_value:
+                continue
+            if any(h == float('inf') or h <= 0 for h in heights):
+                continue
+            # Convert m-heights to log scale
+            log_heights = np.log(heights)
+            P_matrix = np.array(row['P_matrix'], dtype=np.float32)
+
+            self.P_matrices.append(P_matrix)
+            # m_heights.append(log_heights)
+            self.m_heights.append(heights)
+        self.P_matrices = np.array(self.P_matrices, dtype=np.float32)
+        self.m_heights = np.array(self.m_heights, dtype=np.float32)
+        print("P_matrices shape:", self.P_matrices.shape)
+        print("m_heights shape:", self.m_heights.shape)
+        # pritnt range of all m-heights 
+        print("Range of log m_heights:")
+        print("Min:", np.min(self.m_heights, axis=0))
+        print("Max:", np.max(self.m_heights, axis=0))
+            
+    def generate_permuted_dataset(self, P_matrices, m_heights, num_permutations=3):
+        """Create augmented dataset by permuting columns of P_matrices."""
+        augmented_P_matrices = []
+        augmented_m_heights = []
+
+        for i in range(len(P_matrices)):
+            original = P_matrices[i]
+            target = m_heights[i]
+
+            # Keep original
+            augmented_P_matrices.append(original)
+            augmented_m_heights.append(target)
+
+            # Generate random permutations
+            for _ in range(num_permutations):
+                permuted = original[:, np.random.permutation(original.shape[1])]
+                augmented_P_matrices.append(permuted)
+                augmented_m_heights.append(target)
+        return np.array(augmented_P_matrices), np.array(augmented_m_heights)
+    def train_test_val_split(self, val_split=0.2, test_split=0.2, num_permutations=4, batch_size=128, random_state=2342):
+        
+        if(self.P_matrices is None or self.m_heights is None):
+            raise ValueError("Data not loaded. Please load the data first.")
+        # Train-test split
+        self.P_matrices_train, self.P_matrices_test,\
+              self.m_heights_train, self.m_heights_test\
+                 = train_test_split(self.P_matrices, self.m_heights, test_size=test_split, random_state=random_state)
+
+        # Converting test set to evaluator format
+        self.eval_inputs = {}
+        self.eval_outputs = {}
+
+        # Iterate through each P_matrix and corresponding m_heights in test_dataset
+        for i in range(len(self.P_matrices_test)):
+            P_matrix = self.P_matrices_test[i]
+            m_heights_list = self.m_heights_test[i]
+            for m in range(2, self.max_m_value + 1):  # m ranges from 2 to max_m_value
+                key = f"[{self.n},{self.k},{m}]"
+                
+                # Add the P_matrix to the inputs dictionary
+                if key not in self.eval_inputs:
+                    self.eval_inputs[key] = []
+                self.eval_inputs[key].append(P_matrix)
+                
+                # Add the corresponding m_height to the outputs dictionary
+                if key not in self.eval_outputs:
+                    self.eval_outputs[key] = []
+                self.eval_outputs[key].append(m_heights_list[m - 1])  # m-1 to get the correct index
+
+        # Change m_heights_train and m_heights_test to log_scale
+        self.m_heights_log_train = np.log(self.m_heights_train)
+        self.m_heights_log_test = np.log(self.m_heights_test)
+
+        # Train-validation split
+        self.P_matrices_train, self.P_matrices_val, self.m_heights_log_train, self.m_heights_log_val = train_test_split(self.P_matrices_train, self.m_heights_log_train, test_size=val_split, random_state=random_state)
+        # Generate augmented  training dataset
+        self.P_matrices_train_aug, self.m_heights_log_train_aug = self.generate_permuted_dataset(self.P_matrices_train, self.m_heights_log_train, num_permutations=num_permutations) 
+        # Create TensorFlow datasets
+        self.train_dataset = tf.data.Dataset.from_tensor_slices((self.P_matrices_train_aug, self.m_heights_log_train_aug))
+        self.train_dataset = self.train_dataset.shuffle(self.P_matrices_train_aug.shape[0]).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
+        self.val_dataset = tf.data.Dataset.from_tensor_slices((self.P_matrices_val, self.m_heights_log_val))
+        self.val_dataset = self.val_dataset.shuffle(self.P_matrices_val.shape[0]).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+        print("Train dataset shape:", self.P_matrices_train_aug.shape, self.m_heights_log_train_aug.shape)
+        print("Validation dataset shape:", self.P_matrices_val.shape, self.m_heights_log_val.shape)
+        print("Test dataset shape:", self.P_matrices_test.shape, self.m_heights_log_test.shape)
+    
+    def model_compile(self, build_model, print_summary=False):
+        if self.train_dataset is None or self.val_dataset is None:
+            raise ValueError("Train and validation datasets not created. Please create them first.")
+        self.model = build_model(self.n, self.k, self.max_m_value)
+        print("Model compiled.")
+        if print_summary:
+            self.model.summary()
+    
+    def model_train(self, epochs=10, verbose=0, patience=5 , model_save_directory="."):
+        if self.model is None:
+            raise ValueError("Model not built. Please build the model first.")
+        
+        # Early stopping callback
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience, restore_best_weights=True)
+        model_checkpoint = tf.keras.callbacks.ModelCheckpoint(model_save_directory + '/' + self.model_name, save_best_only=True)
+        # Train the model
+        self.history = self.model.fit(
+            self.train_dataset,
+            validation_data=self.val_dataset,
+            epochs=epochs,
+            callbacks=[
+                early_stopping,
+                model_checkpoint,
+            ],
+            verbose=verbose
+        )
+    def plot_history(self):
+        if self.history is None:
+            raise ValueError("Model not trained. Train the model first.")
+        history_dict = self.history.history
+        mse = history_dict["loss"]
+        val_mse = history_dict["val_loss"]
+        epochs = range(1, len(mse) + 1)
+        print('Train MSE :', mse)
+        print('Validation MSE :', val_mse)
+        plt.plot(epochs, mse, "bo", label="Training mse")
+        plt.plot(epochs, val_mse, "b", label="Validation mse")
+        plt.title("Training and validation mean squared error")
+        plt.xlabel("Epochs")
+        plt.ylabel("MSE")
+        plt.legend()
+        plt.show()
+    def evaluate_model(self, batch_size=128):
+        if self.history is None:
+            raise ValueError("Model not trained. Train the model first.")
+        results = self.model.evaluate(self.P_matrices_test, self.m_heights_log_test, batch_size=batch_size, verbose=0)
+        print('Best model loss :', results)
+    
+def build_model(n, k, max_m_value):
+    input_shape = (k, n - k)  
+    
+    # Input layer
+    input_layer = layers.Input(shape=input_shape)
+
+    # Transpose so we can treat each column independently
+    # After transpose: shape becomes (batch_size, n-k, k)
+    transposed = layers.Permute((2, 1))(input_layer)  
+
+    # Shared MLP applied to each column (like DeepSets)
+    shared_mlp = tf.keras.Sequential([
+        layers.Dense(64, activation='relu'),
+        layers.Dense(64, activation='relu')
+    ])
+
+    # Apply shared MLP to each column (TimeDistributed over n-k columns)
+    encoded_columns = layers.TimeDistributed(shared_mlp)(transposed)  # (batch, n-k, 64)
+
+    # Aggregate over columns to achieve permutation invariance
+    aggregated = layers.GlobalAveragePooling1D()(encoded_columns)  # (batch, 64)
+
+    # Final prediction head
+    output_layer = layers.Dense(max_m_value, activation='linear')(aggregated)
+
+    model = models.Model(inputs=input_layer, outputs=output_layer)
+    model.compile(optimizer='adam', loss='mse')
+
+    return model
+
+def predict_and_evaluate(n,k,m,P_matrices):
+    ## load model
+    model_name = model_save_directory + '/' + f'model_{n}_{k}.keras'
+    model = tf.keras.models.load_model(model_name)
+    m_heights = []
+    P_matrices = np.array(P_matrices, dtype=np.float32)
+    m_heights_pred = model.predict(P_matrices.reshape(len(P_matrices), k, n-k), verbose=0)
+    m_heights =[np.exp(m_heights_pred[i][m-1]) for i in range(len(P_matrices))]
+    # print(P_matrices[0])
+    # print(m_heights_pred[0])
+    # print(m_heights_pred[0][m-1])
+    # print(np.exp(m_heights_pred[0][m-1]))
+    # print(m_heights[0])
+    return m_heights
+
+(9, 4, 2), σ: 0.2153874646695738
+(9, 4, 3), σ: 0.24490532430813122
+(9, 4, 4), σ: 0.8372623536478067
+(9, 4, 5), σ: 3.489428679291409
+(9, 5, 2), σ: 0.21553020816803786
+(9, 5, 3), σ: 0.779371196601916
+(9, 5, 4), σ: 3.3760812461819985
+(9, 6, 2), σ: 0.5453425066193041
+(9, 6, 3), σ: 3.142384629180884
+(10, 4, 2), σ: 0.883845613780141
+(10, 4, 3), σ: 0.10184728949688858
+(10, 4, 4), σ: 0.2561608362305313
+(10, 4, 5), σ: 0.8707335533340382
+(10, 4, 6), σ: 3.4372736614762744
+(10, 5, 2), σ: 0.1378181476604931
+(10, 5, 3), σ: 0.3372762540861016
+(10, 5, 4), σ: 0.947755899522226
+(10, 5, 5), σ: 3.640511420342019
+(10, 6, 2), σ: 0.2483864661919728
+(10, 6, 3), σ: 0.8736996960239146
+(10, 6, 4), σ: 3.4638135309993223
+
+Model 2 : model 1 with mae loss
+Model 3 : model 1 with Logcosh loss
+Model 4 : model 1 with deeper shared mlp
+shared_mlp = tf.keras.Sequential([
+    layers.Dense(128, activation='relu'),
+    layers.Dense(128, activation='relu'),
+    layers.Dense(64, activation='relu')
+    ])
+modest improvement
+
+Model 5 : 
+model 1 with RMSprop as optimizer
+takes longer to plataeu
+No improvment
+
+Model 6 : 
+plataeus in second epoch. Better than model 1.
+shared_mlp = tf.keras.Sequential([
+        layers.Dense(64),
+        layers.BatchNormalization(),
+        layers.Activation('relu'),
+        
+        layers.Dense(64),
+        layers.BatchNormalization(),
+        layers.Activation('relu'),
+    ])
+
+model 7 : 
+model 1 with 
+
+avg = layers.GlobalAveragePooling1D()(encoded_columns)
+max_ = layers.GlobalMaxPooling1D()(encoded_columns)
+aggregated = layers.Concatenate()([avg, max_])
+
+Also better than model 1
+
+model 8 :
+simple dnn
+
+
+
+model_9 :
+Residual connection - No improvement
+def build_model(n, k, max_m_value):
+    input_shape = (k, n - k)
+
+    # Input layer
+    input_layer = layers.Input(shape=input_shape)
+
+    # Transpose so we can treat each column independently
+    # After transpose: shape becomes (batch_size, n-k, k)
+    transposed = layers.Permute((2, 1))(input_layer)
+
+    # Apply shared MLP with one residual block directly
+    # First dense layer
+    td_dense1 = layers.TimeDistributed(layers.Dense(64, activation='relu'))(transposed)
+
+    # Second dense layer (no activation)
+    td_dense2 = layers.TimeDistributed(layers.Dense(64))(td_dense1)
+
+    # Residual connection
+    shortcut = layers.TimeDistributed(layers.Dense(64))(transposed)  # project input to match shape
+    residual_added = layers.Add()([td_dense2, shortcut])
+    encoded_columns = layers.Activation('relu')(residual_added)
+    # Aggregation (permutation invariance)
+    aggregated = layers.GlobalAveragePooling1D()(encoded_columns)
+    # max_ = layers.GlobalMaxPooling1D()(encoded_columns)
+    # aggregated = layers.Concatenate()([avg, max_])
+
+    # Final prediction head
+    output_layer = layers.Dense(max_m_value, activation='linear')(aggregated)
+
+    model = models.Model(inputs=input_layer, outputs=output_layer)
+    model.compile(optimizer='adam', loss='mse')
+
+    return model
+
+model 10: 
+depeer simple dnn
+

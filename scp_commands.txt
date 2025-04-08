@@ -1,0 +1,6 @@
+# SCP to upload the generator_matrices folder to the remote server
+scp -r /mnt/d/deep_learning/m_height_prediction/generator_matrices_2 vaishnav.g@tamu.edu:/scratch/user/vaishnav.g/csce636/m_height_prediction
+
+# SCP to download the samples folder from the remote server to your local machine
+scp -r vaishnav.g@tamu.edu:/scratch/user/vaishnav.g/csce636/m_height_prediction/samples_2 /mnt/d/deep_learning/m_height_prediction/samples_2
+git diff COMMIT_1 COMMIT_2 --name-only
