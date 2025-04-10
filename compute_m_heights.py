@@ -109,12 +109,12 @@ def process_batch(batch_data):
         results = list(executor.map(process_sample, batch_data))
     return results
 
-def process_dataset(input_file, batch_size, num_workers, output_folder):
+def process_dataset(input_file, batch_size, num_workers, output_folder, start_batch=1):
     """
     Processes a generator matrix dataset in batches using multiprocessing,
     computes m-heights for each sample in parallel within a batch, and saves the results.
     """
-    print(f"Starting dataset processing: {input_file}, batch size: {batch_size}, workers: {num_workers}, output folder: {output_folder}")
+    print(f"Starting dataset processing: {input_file}, batch size: {batch_size}, workers: {num_workers}, output folder: {output_folder}, starting from batch: {start_batch}")
     try:
         with gzip.open(input_file, 'rb') as f:
             dataset = pickle.load(f)
@@ -135,6 +135,10 @@ def process_dataset(input_file, batch_size, num_workers, output_folder):
         batches = [dataset[i:i + batch_size] for i in range(0, total_samples, batch_size)]
 
         for batch_number, batch_data in enumerate(batches, start=1):
+            if batch_number < start_batch:
+                print(f"Skipping batch {batch_number}...")
+                continue
+
             print(f"Processing batch {batch_number} with {len(batch_data)} samples...")
 
             # Process the batch in parallel
@@ -156,13 +160,14 @@ def process_dataset(input_file, batch_size, num_workers, output_folder):
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 5:
-        print("Usage: python compute_m_heights.py <input_dataset_file> <batch_size> <num_workers> <output_folder>")
+    if len(sys.argv) not in [5, 6]:
+        print("Usage: python compute_m_heights.py <input_dataset_file> <batch_size> <num_workers> <output_folder> [<start_batch>]")
         sys.exit(1)
 
     input_file = sys.argv[1]
     batch_size = int(sys.argv[2])
     num_workers = int(sys.argv[3])
     output_folder = sys.argv[4]
+    start_batch = int(sys.argv[5]) if len(sys.argv) == 6 else 1
 
-    process_dataset(input_file, batch_size, num_workers, output_folder)
+    process_dataset(input_file, batch_size, num_workers, output_folder, start_batch)
