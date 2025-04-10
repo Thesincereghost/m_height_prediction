@@ -18,7 +18,8 @@ def combine_batches(samples_dirs, output_dir):
     for samples_dir in samples_dirs:
         for subfolder in os.listdir(samples_dir):
             dataset_names.add(subfolder)
-
+    # dataset_names = set(['G_9_6_maxM3.pkl'])
+    print(f"Found dataset names: {dataset_names}")
     # Process each dataset
     for dataset_name in dataset_names:
         combined_batches = []
@@ -44,8 +45,8 @@ def combine_batches(samples_dirs, output_dir):
 
 if __name__ == "__main__":
     # List of directories containing the samples
-    samples_dirs = ["samples", "samples_1"]
+    samples_dirs = ["samples", "samples_1", "samples_2" ]
     # Output directory for combined datasets
-    output_dir = "samples_combined"
+    output_dir = "samples_combined_1"
 
     combine_batches(samples_dirs, output_dir)

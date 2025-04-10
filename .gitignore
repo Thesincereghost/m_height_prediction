@@ -9,10 +9,13 @@ model_*/
 samples/
 samples_1/
 samples_2/
-generator_matrices/
+samples_3/
+samples*/
+samples_combined*/
+generator_matrices*/
 generator_matrices_1/
 generator_matrices_2/
-
+project1_submission/
 *.log
 model.png
 *.sh

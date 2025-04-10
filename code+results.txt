@@ -317,4 +317,26 @@ def build_model(n, k, max_m_value):
 
 model 10: 
 depeer simple dnn
+doesnt work any better
 
+model 11:
+21 models
+not better
+
+model 12:
+one model to predict magnitude an done to predict power
+
+model 13 :
+ Huber loss
+
+model 14 :
+model 13 with model 6 & 7
+
+model 15 :
+model 1 with model 6 & model 7
+
+model 16 :
+just 9_6 with larger sample size
+
+model 17:
+seperate mantissa and exponent models
