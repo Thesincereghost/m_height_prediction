@@ -15,7 +15,6 @@ samples_combined*/
 generator_matrices*/
 generator_matrices_1/
 generator_matrices_2/
-project1_submission/
 *.log
 model.png
 *.sh
